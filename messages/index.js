@@ -33,7 +33,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     .matches('SearchGarmentStyle', [
         function (session, args, next) {
             session.send('hi ,we are analyzing your message: \'%s\' for search garment style, please wait.', session.message.text);
-            logger.log('info', 'start Luis Intent SearchGarmentStyle from [%s]', session.message.text);
             // try extracting entities
             var garmentStyleEntity = builder.EntityRecognizer.findEntity(args.entities, 'GarmentStyleNo');
             if (garmentStyleEntity) {
@@ -59,7 +58,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     .matches('SearchFabric', [
         function (session, args, next) {
             session.send('hi ,we are analyzing your message: \'%s\' for search fabric, please wait.', session.message.text);
-            logger.log('info', 'start Luis Intent SearchFabric from [%s]', session.message.text);
             // try extracting entities
             var fabricEntity = builder.EntityRecognizer.findEntity(args.entities, 'FabricNo');
             if (fabricEntity) {
@@ -85,7 +83,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     .matches('SearchTrim', [
         function (session, args, next) {
             session.send('hi ,we are analyzing your message: \'%s\' for search trim, please wait.', session.message.text);
-            logger.log('info', 'start Luis Intent SearchTrim from [%s]', session.message.text);
             // try extracting entities
             var trimEntity = builder.EntityRecognizer.findEntity(args.entities, 'TrimNo');
             if (trimEntity) {
