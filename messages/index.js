@@ -7,7 +7,6 @@ http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 "use strict";
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
-var Promise = require('bluebird');
 
 var useEmulator = true;// (process.env.NODE_ENV == 'development');
 
