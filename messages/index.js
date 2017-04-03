@@ -46,7 +46,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             if (garmentStyleNo) {
                 garmentStyleNo = garmentStyleNo.replace(/\s+/g, "");
                 // Async search WebAPI
-                session.send('found garment style number \'%s\' , search data from API', garmentStyleNo);
+                session.send('found garment style number \'%s\' , search data from API', trimNo);
                 session.endDialog();
             } else {
                 session.send('can not found garment style number from you message \'%s\' ', session.message.text);
