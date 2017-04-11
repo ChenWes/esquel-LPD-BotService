@@ -1,0 +1,7 @@
+{
+    "apiUrl": {
+        "getGarmentStyleSigleApi": "http://designer-workbench.azurewebsites.net/api/v1/styleproduct/1/1",
+        "getFabricSigleApi": "http://designer-workbench.azurewebsites.net/api/v1/fabriclibrary/search/1/1",
+        "getTrimSigleApi": "http://designer-workbench.azurewebsites.net/api/v1/appareltrimlibrary/search/1/1"
+    }
+}

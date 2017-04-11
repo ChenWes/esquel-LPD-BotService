@@ -4,12 +4,16 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
+    "adal-node": "^0.1.22",
     "botbuilder": "^3.7.0",
-    "botbuilder-azure": "3.0.2"
+    "botbuilder-azure": "3.0.2",
+    "node-fetch": "^1.6.3"
   },
   "devDependencies": {
-      "restify": "^4.3.0"
-  },  
+    "adal-node": "^0.1.22",
+    "node-fetch": "^1.6.3",
+    "restify": "^4.3.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
