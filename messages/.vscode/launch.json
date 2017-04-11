@@ -1,4 +1,3 @@
-
 {
     "version": "0.2.0",
     "configurations": [
@@ -10,8 +9,10 @@
             "cwd": "${workspaceRoot}",
             "env": {
                 "NODE_ENV": "development",
-                "LuisAppId": "",
-                "LuisAPIKey": ""
+                // "LuisAppId": "3d117394-44c3-416f-ab11-96e8d451018d",
+                // "LuisAPIKey": "f21ea5607c6b43589c12e6099b0a9614"
+                "LuisAppId": "a9dca225-cf60-4d88-ba19-873f008c204d",
+                "LuisAPIKey": "f21ea5607c6b43589c12e6099b0a9614"
             }
         }
     ]
