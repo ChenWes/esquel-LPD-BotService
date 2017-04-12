@@ -1,5 +1,6 @@
 var fetch = require('node-fetch');
 var defaultConfig = require('../config/default.json');
+var HttpsProxyAgent = require('https-proxy-agent');
 
 module.exports = {
     searchGarmentStyle: function (garmentStyleNo, access_token) {
@@ -11,60 +12,15 @@ module.exports = {
             "filterValue": garmentStyleNo
         }
 
-        // var post_options = {
-        //     method: 'POST',
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //         'Accept': 'application/json',
-        //         'Authorization': 'Bearer ' + access_token
-        //     },
-        //     body: JSON.stringify(queryEntity),
-        //     json: true
-        // };
-
         var garmentstyles = [];
         // Set up the request
         return new Promise(function (resolve, reject) {
             try {
-
-                // var options = {
-                //     // "GET": "POST",
-                //     "hostname": "designer-workbench.azurewebsites.net",
-                //     "port": null,
-                //     "path": "/api/v1/masterdata",
-                //     "headers": {
-                //         "authorization": "Bearer " + access_token,
-                //         "content-type": "application/json"
-                //     }
-                // };
-
-                // var req = http.request(options, function (res) {
-                //     var chunks = [];
-
-                //     res.on("data", function (chunk) {
-                //         chunks.push(chunk);
-                //     });
-
-                //     res.on("end", function () {
-                //         var body = Buffer.concat(chunks);
-                //         console.log(body.toString());
-                //         resolve(null);
-                //     });
-                // });
-
-                // req.write(JSON.stringify({
-                //     filterType: 'LEAF',
-                //     filters: [{}],
-                //     attributeName: 'item_number',
-                //     searchOperator: 'eq',
-                //     filterValue: '15CNLI001CL'
-                // }));
-                // req.end();
-
                 //-------------------------------------------------------------------------------------------------------------
 
                 fetch(defaultConfig.apiUrl.getGarmentStyleSigleApi,
                     {
+                        agent: new HttpsProxyAgent('http://192.168.27.4:8083'),
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

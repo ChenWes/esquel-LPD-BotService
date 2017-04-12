@@ -1,5 +1,6 @@
 var fetch = require('node-fetch');
 var defaultConfig = require('../config/default.json');
+var HttpsProxyAgent = require('https-proxy-agent');
 
 module.exports = {
     searchTrim: function (trimNO, access_token) {
@@ -18,6 +19,7 @@ module.exports = {
 
                 fetch(defaultConfig.apiUrl.getTrimSigleApi,
                     {
+                        agent: new HttpsProxyAgent('http://192.168.27.4:8083'),
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

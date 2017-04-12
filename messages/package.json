@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "adal-node": "^0.1.22",
+    "https-proxy-agent": "^1.0.0",
     "node-fetch": "^1.6.3",
     "restify": "^4.3.0"
   },
