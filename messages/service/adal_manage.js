@@ -1,15 +1,18 @@
 var adal = require('adal-node');
+var config = require("../config/default.json").adalConfig;
 
 var AuthenticationContext = adal.AuthenticationContext;
 
+//get value from config
 var adalParameters = {
-    tenant: 'esquel.onmicrosoft.com',
-    authorityHostUrl: 'https://login.windows.net',
-    clientId: 'f4489968-3421-4b88-87b0-ccf545835db6',
-    clientSecret: 'VzeH2xMC/i+6nyCqKvlBxefb0EYJRIaqpuLFl1vWYRE='
+    tenant: config.tenant,
+    authorityHostUrl: config.authorityHostUrl,
+    clientId: config.clientId,
+    clientSecret: config.clientSecret
 };
 var authorityUrl = adalParameters.authorityHostUrl + '/' + adalParameters.tenant;
-var resource = 'https://esquel.onmicrosoft.com/705cadd7-d8b2-44f7-9c28-3841c112f04b';
+var resource = config.resource;
+
 var context = new AuthenticationContext(authorityUrl);
 
 module.exports = {

@@ -1,7 +1,14 @@
 {
     "apiUrl": {
-        "getGarmentStyleSigleApi": "http://designer-workbench.azurewebsites.net/api/v1/styleproduct/1/1",
-        "getFabricSigleApi": "http://designer-workbench.azurewebsites.net/api/v1/fabriclibrary/search/1/1",
-        "getTrimSigleApi": "http://designer-workbench.azurewebsites.net/api/v1/appareltrimlibrary/search/1/1"
+        "getGarmentStyleSigleApi": "http://getazdevnt002.chinacloudapp.cn/sprint9/api/v1/styleproduct/1/1",
+        "getFabricSigleApi": "http://getazdevnt002.chinacloudapp.cn/sprint9/api/v1/fabriclibrary/search/1/1",
+        "getTrimSigleApi": "http://getazdevnt002.chinacloudapp.cn/sprint9/api/v1/appareltrimlibrary/search/1/1"
+    },
+    "adalConfig": {
+        "tenant": "esquel.onmicrosoft.com",
+        "authorityHostUrl": "https://login.windows.net",
+        "clientId": "1f621eea-b194-4f70-ba43-bca167a2cae3",
+        "clientSecret": "CEJ1NuKBLlEvmDwy+kQ3HadspuLMPfnlgDEkpWEA2vA=",
+        "resource": "https://esquel.onmicrosoft.com/705cadd7-d8b2-44f7-9c28-3841c112f04b"
     }
 }
