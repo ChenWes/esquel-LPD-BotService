@@ -12,6 +12,7 @@ var garmentstyle_helper = require('./service/garment_style_search');
 var fabricSearchHelper = require('./service/fabric_search');
 var trimSearchHelper = require('./service/trim_search');
 var adal_manage = require('./service/adal_manage');
+var config = require('./config/default.json');
 
 var useEmulator = (process.env.NODE_ENV == 'development');
 
@@ -23,6 +24,23 @@ var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure
 });
 
 var bot = new builder.UniversalBot(connector);
+
+//hello message from config
+var helloMessage = config.messageSetting.helloMessage;
+
+//first time send hello message
+bot.on('conversationUpdate', function (activity) {
+    if (activity.membersAdded) {
+        activity.membersAdded.forEach(function (identity) {
+            if (identity.id === activity.address.bot.id) {
+                var reply = new builder.Message()
+                    .address(activity.address)
+                    .text(helloMessage);
+                bot.send(reply);
+            }
+        });
+    }
+})
 
 // Make sure you add code to validate these fields
 var luisAppId = process.env.LuisAppId;

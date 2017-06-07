@@ -10,5 +10,8 @@
         "clientId": "1f621eea-b194-4f70-ba43-bca167a2cae3",
         "clientSecret": "CEJ1NuKBLlEvmDwy+kQ3HadspuLMPfnlgDEkpWEA2vA=",
         "resource": "https://esquel.onmicrosoft.com/705cadd7-d8b2-44f7-9c28-3841c112f04b"
+    },
+    "messageSetting": {
+        "helloMessage": "Welcome to use LPD bot. Send 'search germent style XXX', 'search style XXX' or 'style XXX' to search garment style from Instant noodle System."
     }
 }
