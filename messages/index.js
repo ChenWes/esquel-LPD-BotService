@@ -1,6 +1,6 @@
 /*-----------------------------------------------------------------------------
-This template demonstrates how to use an IntentDialog with a LuisRecognizer to add 
-natural language support to a bot. 
+This template demonstrates how to use an IntentDialog with a LuisRecognizer to add
+natural language support to a bot.
 For a complete walkthrough of creating this type of bot see the article at
 http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 -----------------------------------------------------------------------------*/
@@ -226,6 +226,99 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 session.send('can not found trim number from you message \'%s\' ', session.message.text);
                 session.endDialog();
             }
+        }
+    ])
+    .matches('SearchPLU', [
+        function (session, args, next) {
+            // if (session.userData.styleNo) {
+            //     session.send('hi ,we are use garment style [' + session.userData.styleNo + '] for search PLU, please wait.', session.message.text);
+            //     next({ response: session.userData.styleNo });
+            // } else {
+            session.send('hi ,we are analyzing your message: \'%s\' for search PLU, please wait.', session.message.text);
+            var garmentStyleEntity = builder.EntityRecognizer.findEntity(args.entities, 'GarmentStyleNo');
+            if (garmentStyleEntity) {
+                //save user data - styleNo
+                session.userData.styleNo = garmentStyleEntity.entity;
+
+                next({ response: garmentStyleEntity.entity });
+            } else {
+                // no entities detected, ask user for a garment style, same as get parameter from Luis
+                builder.Prompts.text(session, 'Please select garment style no');
+            }
+            // }
+        },
+        function (session, results) {
+            var garmentStyleNo = results.response;
+            if (garmentStyleNo) {
+                garmentStyleNo = garmentStyleNo.replace(/\s+/g, "");
+
+                //save user data - styleNo
+                session.userData.styleNo = garmentStyleNo;
+
+                //get token for search garment style
+                adal_manage.getToken()
+                    .then((token_object) => {
+
+                        console.log(token_object.accessToken);
+
+                        //get garment style
+                        garmentstyle_helper
+                            .searchGarmentStyle(garmentStyleNo, token_object.accessToken)
+                            .then((GarmentStyles) => {
+                                if (GarmentStyles && GarmentStyles.length > 0) {
+                                    //get data
+                                    var getstyle = GarmentStyles[0];
+                                    var colorways = getstyle.linePlanProducts.productMaterialConfigs;
+                                    if (colorways) {
+                                        var colorwayArray = [];
+                                        for (let i = 0; i < colorways.length; i++) {
+                                            colorwayArray.push(colorways[i].colorway);
+                                        }
+
+                                        //set temp data
+                                        session.userData.colorwayData = colorways;
+                                        builder.Prompts.choice(session, 'please select garment style [' + session.userData.styleNo + '] colorway for search plu ', colorwayArray);
+                                    } else {
+                                        session.send('garment style \"%s\" no colorway , can not search plu', garmentStyleNo);
+                                        session.endDialog();
+                                    }
+                                }
+                                else {
+                                    // no found
+                                    session.send('can not found garment style \"%s\"', garmentStyleNo);
+                                    session.endDialog();
+                                }
+                            },
+                            (err) => {
+                                session.send('[searchGarmentStyle Error:]' + err.message ? err.message : '');
+                                session.endDialog();
+                            });
+                    })
+                    .catch((err) => {
+                        session.send('[getToken Error:]' + err.message ? err.message : '');
+                        session.endDialog();
+                    })
+
+
+            } else {
+                session.send('can not found garment style number from you message \'%s\' ', session.message.text);
+                session.endDialog();
+            }
+        },
+        function (session, results) {
+            var selectColorwayData = session.userData.colorwayData[results.response.index];
+
+            if (selectColorwayData) {
+                if (selectColorwayData.pluNumber) {
+                    session.send('garment style [' + session.userData.styleNo + '] colorway [' + results.response.entity + '] plu number is');
+                    session.send(selectColorwayData.pluNumber);
+                } else {
+                    session.send('garment style ' + session.userData.styleNo + ' colorway ' + results.response.entity + ' plu number is empty');
+                }
+            } else {
+                session.send('garment style ' + session.userData.styleNo + ' can not found colorway ' + results.response.entity);
+            }
+            session.endDialog();
         }
     ])
     .matches('Hello', builder.DialogAction.send('hi! welcome use Esquel LPD Bot, try asking me things like \'search germent style XXX\', \'search style XXX\' or \'style XXX\''))
