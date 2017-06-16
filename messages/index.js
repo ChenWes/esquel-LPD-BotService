@@ -259,7 +259,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 adal_manage.getToken()
                     .then((token_object) => {
 
-                        console.log(token_object.accessToken);
+                        // console.log(token_object.accessToken);
 
                         //get garment style
                         garmentstyle_helper
