@@ -12,6 +12,7 @@ var garmentstyle_helper = require('./service/garment_style_search');
 var fabricSearchHelper = require('./service/fabric_search');
 var trimSearchHelper = require('./service/trim_search');
 var adal_manage = require('./service/adal_manage');
+var aras_plu_manage = require('./service/aras_plu_manage');
 var config = require('./config/default.json');
 
 var useEmulator = (process.env.NODE_ENV == 'development');
@@ -243,7 +244,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
                 next({ response: garmentStyleEntity.entity });
             } else {
                 // no entities detected, ask user for a garment style, same as get parameter from Luis
-                builder.Prompts.text(session, 'Please select garment style no');
+                builder.Prompts.text(session, 'Please enter garment style no');
             }
             // }
         },
@@ -318,6 +319,41 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
             } else {
                 session.send('garment style ' + session.userData.styleNo + ' can not found colorway ' + results.response.entity);
             }
+            session.endDialog();
+        }
+    ])
+    .matches('CheckPLU', [
+        function (session, args, next) {
+            session.send('hi ,we are analyzing your message: \'%s\' for check PLU, please wait.', session.message.text);
+
+            var pluNoEntity = builder.EntityRecognizer.findEntity(args.entities, 'PLUNo');
+            if (pluNoEntity) {
+                //save user data - pluNo
+                // session.userData.pluNo = pluNoEntity.entity;
+
+                next({ response: pluNoEntity.entity });
+            } else {
+                // no entities detected, ask user for a garment style, same as get parameter from Luis
+                builder.Prompts.text(session, 'Please enter plu#');
+            }
+        },
+        function (session, results) {
+            var pluNo = results.response;
+
+            aras_plu_manage.searchPLU(pluNo)
+                .then((getdata) => {
+                    if (getdata.styleno && getdata.colorway) {
+                        session.send('PLU:' + pluNo);
+                        session.send('style:' + getdata.styleno);
+                        session.send('colorway:' + getdata.colorway);
+                    } else {
+                        throw new Error('can not get garment style and colorway name , Please try again.');
+                    }
+                })
+                .catch((err) => {
+                    session.send(err.message);
+                });
+
             session.endDialog();
         }
     ])
