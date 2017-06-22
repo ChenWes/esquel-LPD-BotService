@@ -14,7 +14,7 @@ module.exports = {
                     .then((responseXML) => {
 
                         var responseObject = parseString(responseXML, { explicitArray: false, ignoreAttrs: true }, function (err2, result) {
-                            if (err2) reject(new Error('Process AML Error:' + err2.message));                            
+                            if (err2) reject(new Error('Process AML Error:' + err2.message));
 
                             //check data
                             if (result['SOAP-ENV:Envelope']) {
@@ -31,64 +31,11 @@ module.exports = {
                                     //get result
                                     if (data_Body.Result) {
                                         var data_Result = data_Body.Result;
-                                        if (data_Result.Item) {
-                                            //Item type="Garment"
-                                            var item_Garment = data_Result.Item;
 
-                                            if (item_Garment.item_number) {
-                                                resultData.styleno = item_Garment.item_number;
-                                            } else {
-                                                resolve(resultData);
-                                            }
+                                        resultData.styleno = data_Result.Item.item_number;
+                                        resultData.colorway = data_Result.Item.Relationships.Item.related_id.Item.colorway.Item.cn_colorway;
 
-                                            if (item_Garment.Relationships) {
-                                                //Item type="Garment" Relationships
-                                                var item_Garment_Relationships = item_Garment.Relationships;
-                                                if (item_Garment_Relationships.Item) {
-                                                    //Item type="Garment Style Contains Option"
-                                                    var item_Garment_Style_Contains_Option = item_Garment_Relationships.Item;
-                                                    if (item_Garment_Style_Contains_Option.related_id) {
-                                                        //related_id keyed_name="4133440E547A48C2B157D5A03426DE6F" type="Garment Style Option"
-                                                        var related_id_item_Garment_Style_Contains_Option = item_Garment_Style_Contains_Option.related_id;
-                                                        if (related_id_item_Garment_Style_Contains_Option.Item) {
-                                                            //Item type="Garment Style Option"
-                                                            var item_Garment_Style_Option = related_id_item_Garment_Style_Contains_Option.Item;
-                                                            if (item_Garment_Style_Option.colorway) {
-                                                                //colorway keyed_name="CW000029 BROWN" type="Colorway"
-                                                                var colorway_tem_Garment_Style_Option = item_Garment_Style_Option.colorway;
-                                                                if (colorway_tem_Garment_Style_Option.Item) {
-                                                                    //Item type="Colorway"
-                                                                    var item_colorway = colorway_tem_Garment_Style_Option.Item;
-
-                                                                    if (item_colorway.cn_colorway) {
-                                                                        resultData.colorway = item_colorway.cn_colorway;
-                                                                        resolve(resultData);
-                                                                    } else {
-                                                                        resolve(resultData);
-                                                                    }
-                                                                } else {
-                                                                    resolve(resultData);
-                                                                }
-                                                            } else {
-                                                                resolve(resultData);
-                                                            }
-                                                        } else {
-                                                            resolve(resultData);
-                                                        }
-
-                                                    } else {
-                                                        resolve(resultData);
-                                                    }
-                                                } else {
-                                                    resolve(resultData);
-                                                }
-                                            } else {
-                                                resolve(resultData);
-                                            }
-
-                                        } else {
-                                            reject(new Error('Process AML Error:Result no data'));
-                                        }
+                                        resolve(resultData);                                        
                                     } else {
                                         reject(new Error('Process AML Error:Result no data'));
                                     }
