@@ -13,5 +13,11 @@
     },
     "messageSetting": {
         "helloMessage": "Welcome to use LPD bot. Send 'search germent style XXX', 'search style XXX' or 'style XXX' to search garment style from Instant noodle System."
+    },
+    "ArasSetting": {
+        "serverUrl": "http://getazdevnt002.chinacloudapp.cn/InnovatorTestServer/Server/InnovatorServer.aspx",
+        "AUTHUSER": "admin",
+        "AUTHPASSWORD": "innovator",
+        "DATABASE": "Esquel_PLM"
     }
 }

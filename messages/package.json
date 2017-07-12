@@ -7,7 +7,9 @@
     "adal-node": "^0.1.22",
     "botbuilder": "^3.7.0",
     "botbuilder-azure": "3.0.2",
-    "node-fetch": "^1.6.3"
+    "md5": "^2.2.1",
+    "node-fetch": "^1.6.3",
+    "xml2js": "^0.4.17"
   },
   "devDependencies": {
     "adal-node": "^0.1.22",
