@@ -5,313 +5,259 @@ For a complete walkthrough of creating this type of bot see the article at
 http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 -----------------------------------------------------------------------------*/
 "use strict";
-var builder = require("botbuilder");
-var botbuilder_azure = require("botbuilder-azure");
+let builder = require("botbuilder");
+let botbuilder_azure = require("botbuilder-azure");
 
-var garmentstyle_helper = require('./service/garment_style_search');
-var fabricSearchHelper = require('./service/fabric_search');
-var trimSearchHelper = require('./service/trim_search');
-var adal_manage = require('./service/adal_manage');
-var aras_plu_manage = require('./service/aras_plu_manage');
-var config = require('./config/default.json');
+let garmentstyle_service_helper = require('./src/service/garment_style_search');
+let fabrich_service_helper = require('./src/service/fabric_search');
+let trim_service_helper = require('./src/service/trim_search');
+let adal_manage_helper = require('./src/service/adal_manage');
+let aras_plu_manage_helper = require('./src/service/aras_plu_manage');
+let config = require('./config/default.json');
 
-var useEmulator = (process.env.NODE_ENV == 'development');
 
-var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure.BotServiceConnector({
+let hello_attachment_helper = require('./src/help/helloAttach');
+let garmentstyle_attachment_helper = require('./src/help/garmentStyleAttach');
+let fabric_attachment_helper = require('./src/help/fabricAttach');
+let trim_attachment_helper = require('./src/help/trimAttach');
+
+let useEmulator = (process.env.NODE_ENV == 'development');
+
+let connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure.BotServiceConnector({
     appId: process.env['MicrosoftAppId'],
     appPassword: process.env['MicrosoftAppPassword'],
     stateEndpoint: process.env['BotStateEndpoint'],
     openIdMetadata: process.env['BotOpenIdMetadata']
 });
 
-var bot = new builder.UniversalBot(connector);
+let bot = new builder.UniversalBot(connector);
 
-//hello message from config
-var helloMessage = config.messageSetting.helloMessage;
+//set localizer
+bot.set('localizerSettings', {
+    botLocalePath: "./config/customLocale",
+    defaultLocale: config.default_locale
+});
 
 //first time send hello message
 bot.on('conversationUpdate', function (activity) {
     if (activity.membersAdded) {
         activity.membersAdded.forEach(function (identity) {
             if (identity.id === activity.address.bot.id) {
-                var reply = new builder.Message()
+
+                let reply = new builder.Message()
                     .address(activity.address)
-                    .text(helloMessage);
+                    .text('hi');
                 bot.send(reply);
             }
         });
     }
-})
+});
+
 
 // Make sure you add code to validate these fields
-var luisAppId = process.env.LuisAppId;
-var luisAPIKey = process.env.LuisAPIKey;
-var luisAPIHostName = process.env.LuisAPIHostName || 'westus.api.cognitive.microsoft.com';
+let luisAppId = process.env.LuisAppId;
+let luisAPIKey = process.env.LuisAPIKey;
+let luisAPIHostName = process.env.LuisAPIHostName || 'westus.api.cognitive.microsoft.com';
 
 const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v1/application?id=' + luisAppId + '&subscription-key=' + luisAPIKey;
 
 // Main dialog with LUIS
-var recognizer = new builder.LuisRecognizer(LuisModelUrl);
-var intents = new builder.IntentDialog({ recognizers: [recognizer] })
+let recognizer = new builder.LuisRecognizer(LuisModelUrl);
+let intents = new builder.IntentDialog({ recognizers: [recognizer] })
     .matches('SearchGarmentStyle', [
         function (session, args, next) {
-            session.send('hi ,we are analyzing your message: \'%s\' for search garment style, please wait.', session.message.text);
+            let start_message = session.gettext('searchGarmentStyle_ReceiveReply', session.message.text);
+            session.send(start_message);
             // try extracting entities
-            var garmentStyleEntity = builder.EntityRecognizer.findEntity(args.entities, 'GarmentStyleNo');
+            let garmentStyleEntity = builder.EntityRecognizer.findEntity(args.entities, 'GarmentStyleNo');
             if (garmentStyleEntity) {
                 next({ response: garmentStyleEntity.entity });
             } else {
                 // no entities detected, ask user for a garment style, same as get parameter from Luis
-                builder.Prompts.text(session, 'Please enter garment style no');
+                builder.Prompts.text(session, 'searchGarmentStyle_Parameter_prompt');
             }
         },
         function (session, results) {
-            var garmentStyleNo = results.response;
+            let garmentStyleNo = results.response;
             if (garmentStyleNo) {
                 garmentStyleNo = garmentStyleNo.replace(/\s+/g, "");
 
-                //get token
-                adal_manage.getToken()
+                adal_manage_helper.getToken()
                     .then((token_object) => {
-                        // console.log(token_object.accessToken);
-                        //call webapi
-                        garmentstyle_helper
-                            .searchGarmentStyle(garmentStyleNo, token_object.accessToken)
-                            .then((GarmentStyles) => {
-                                if (GarmentStyles && GarmentStyles.length > 0) {
-                                    //foreach data
-                                    for (var getstyle of GarmentStyles) {
-                                        // add message
-                                        var message = new builder.Message()
-                                            .text(getstyle.linePlanProducts.productID + '(' + getstyle.linePlanProducts.productVersion + getstyle.linePlanProducts.productVersionSerialNo + ')')
-                                            .attachmentLayout(builder.AttachmentLayout.carousel)
-                                            .attachments(getstyle.linePlanProducts.productMaterialConfigs.map(garmentStyleColorwayAttachment));
+                        return garmentstyle_service_helper.searchGarmentStyle(garmentStyleNo, token_object.accessToken);
+                    })
+                    .then((GarmentStyles) => {
+                        if (GarmentStyles && GarmentStyles.length > 0) {
+                            return GarmentStyles[0];
+                        } else {
+                            return null;
+                        }
+                    })
+                    .then((getstyle) => {
+                        if (getstyle) {
+                            let message = new builder.Message()
+                                .text(getstyle.linePlanProducts.productID + '(' + getstyle.linePlanProducts.productVersion + getstyle.linePlanProducts.productVersionSerialNo + ')')
+                                .attachmentLayout(builder.AttachmentLayout.carousel)
+                                .attachments(getstyle.linePlanProducts.productMaterialConfigs.map(garmentstyle_attachment_helper.garmentStyleColorwayAttachment));
 
-                                        session.send(message);
-                                    }
-
-                                    session.endDialog();
-                                }
-                                else {
-                                    // no found
-                                    session.send('can not found garment style \"%s\"', garmentStyleNo);
-                                    session.endDialog();
-                                }
-                            },
-                            (err) => {
-                                session.send('[searchGarmentStyle Error:]' + err.message ? err.message : '');
-                                session.endDialog();
-                            });
-                    }, (error) => {
-                        session.send('[getToken Error:]' + err.message ? err.message : '');
-                        session.endDialog();
+                            session.send(message).endDialog();
+                        } else {
+                            session.send('searchGarmentStyle_NoFound').endDialog();
+                        }
+                    })
+                    .catch((err) => {
+                        session.send('searchGarmentStyle_Error').endDialog();
                     });
 
             } else {
-                session.send('can not found garment style number from you message \'%s\' ', session.message.text);
-                session.endDialog();
+                session.send('searchGarmentStyle_Error').endDialog();
             }
         }
     ])
     .matches('SearchFabric', [
         function (session, args, next) {
-            session.send('hi ,we are analyzing your message: \'%s\' for search fabric, please wait.', session.message.text);
+            let start_message = session.gettext('searchFabric_ReceiveReply', session.message.text);
+            session.send(start_message);
             // try extracting entities
-            var fabricEntity = builder.EntityRecognizer.findEntity(args.entities, 'FabricNo');
+            let fabricEntity = builder.EntityRecognizer.findEntity(args.entities, 'FabricNo');
             if (fabricEntity) {
                 next({ response: fabricEntity.entity });
             } else {
                 // no entities detected, ask user for a fabric, same as get parameter from Luis
-                builder.Prompts.text(session, 'Please enter fabric no');
+                builder.Prompts.text(session, 'searchFabric_Parameter_prompt');
             }
         },
         function (session, results) {
-            var fabricNo = results.response;
+            let fabricNo = results.response;
             if (fabricNo) {
                 fabricNo = fabricNo.replace(/\s+/g, "");
 
-                //get token
-                adal_manage.getToken()
+                adal_manage_helper.getToken()
                     .then((token_object) => {
-                        // console.log(token_object.accessToken);
-                        //call webapi
-                        fabricSearchHelper
-                            .searchFabric(fabricNo, token_object.accessToken)
-                            .then((Fabrics) => {
-                                if (Fabrics && Fabrics.length > 0) {
-                                    //foreach data
-                                    for (var getfabric of Fabrics) {
-                                        // add message
-                                        var message = new builder.Message()
-                                            .attachmentLayout(builder.AttachmentLayout.carousel)
-                                            .attachments(Fabrics.map(fabricAttachment));
-                                        //send message
-                                        session.send(message);
-                                    }
-
-                                    session.endDialog();
-                                }
-                                else {
-                                    // no found
-                                    session.send('can not found fabric \"%s\"', fabricNo);
-                                    session.endDialog();
-                                }
-                            },
-                            (err) => {
-                                session.send('[searchFabric Error:]' + err.message ? err.message : '');
-                                session.endDialog();
-                            });
-                    }, (error) => {
-                        session.send('[getToken Error:]' + err.message ? err.message : '');
-                        session.endDialog();
+                        return fabrich_service_helper.searchFabric(fabricNo, token_object.accessToken);
+                    })
+                    .then((Fabrics) => {
+                        if (Fabrics) {
+                            let message = new builder.Message()
+                                .attachmentLayout(builder.AttachmentLayout.carousel)
+                                .attachments(Fabrics.map(trim_attachment_helper.trimAttachment));
+                            //send message
+                            session.send(message).endDialog();
+                        } else {
+                            session.send('searchFabric_NoFound').endDialog();
+                        }
+                    })
+                    .catch((err) => {
+                        session.send('searchFabric_Error').endDialog();
                     });
             } else {
-                session.send('can not found fabric number from you message \'%s\' ', session.message.text);
-                session.endDialog();
+                session.send('searchFabric_Error').endDialog();
             }
         }
     ])
     .matches('SearchTrim', [
         function (session, args, next) {
-            session.send('hi ,we are analyzing your message: \'%s\' for search trim, please wait.', session.message.text);
+            let start_message = session.gettext('searchTrim_ReceiveReply', session.message.text);
+            session.send(start_message);
             // try extracting entities
-            var trimEntity = builder.EntityRecognizer.findEntity(args.entities, 'TrimNo');
+            let trimEntity = builder.EntityRecognizer.findEntity(args.entities, 'TrimNo');
             if (trimEntity) {
                 next({ response: trimEntity.entity });
             } else {
                 // no entities detected, ask user for a trim, same as get parameter from Luis
-                builder.Prompts.text(session, 'Please enter trim no');
+                builder.Prompts.text(session, 'searchTrim_Parameter_prompt');
             }
         },
         function (session, results) {
-            var trimNo = results.response;
+            let trimNo = results.response;
             if (trimNo) {
                 trimNo = trimNo.replace(/\s+/g, "");
 
-                //get token
-                adal_manage.getToken()
+                adal_manage_helper.getToken()
                     .then((token_object) => {
-                        // console.log(token_object.accessToken);
-                        //call webapi
-                        trimSearchHelper
-                            .searchTrim(trimNo, token_object.accessToken)
-                            .then((Trims) => {
-                                if (Trims && Trims.length > 0) {
-                                    //foreach data
-                                    // for (var gettrim of Trims) {
-                                    // add message
-                                    var message = new builder.Message()
-                                        .attachmentLayout(builder.AttachmentLayout.carousel)
-                                        .attachments(Trims.map(trimAttachment));
-                                    //send message
-                                    session.send(message);
-                                    // }
-
-                                    session.endDialog();
-                                }
-                                else {
-                                    // no found
-                                    session.send('can not found trim \"%s\"', garmentStyleNo);
-                                    session.endDialog();
-                                }
-                            },
-                            (err) => {
-                                session.send('[searchTrim Error:]' + err.message ? err.message : '');
-                                session.endDialog();
-                            });
-                    }, (error) => {
-                        session.send('[getToken Error:]' + err.message ? err.message : '');
-                        session.endDialog();
+                        return trim_service_helper.searchTrim(trimNo, token_object.accessToken);
+                    })
+                    .then((Trims) => {
+                        if (Trims && Trims.length > 0) {
+                            let message = new builder.Message()
+                                .attachmentLayout(builder.AttachmentLayout.carousel)
+                                .attachments(Trims.map(trim_attachment_helper.trimAttachment));
+                            //send message
+                            session.send(message).endDialog();
+                        } else {
+                            session.send('searchTrim_NoFound').endDialog();
+                        }
+                    })
+                    .catch((err) => {
+                        session.send('searchTrim_Error').endDialog();
                     });
             } else {
-                session.send('can not found trim number from you message \'%s\' ', session.message.text);
-                session.endDialog();
+                session.send('searchTrim_Error').endDialog();
             }
         }
     ])
     .matches('SearchPLU', [
         function (session, args, next) {
-            // if (session.userData.styleNo) {
-            //     session.send('hi ,we are use garment style [' + session.userData.styleNo + '] for search PLU, please wait.', session.message.text);
-            //     next({ response: session.userData.styleNo });
-            // } else {
-            session.send('hi ,we are analyzing your message: \'%s\' for search PLU, please wait.', session.message.text);
-            var garmentStyleEntity = builder.EntityRecognizer.findEntity(args.entities, 'GarmentStyleNo');
+            let start_message = session.gettext('searchPLU_ReceiveReply', session.message.text);
+            session.send(start_message);
+            let garmentStyleEntity = builder.EntityRecognizer.findEntity(args.entities, 'GarmentStyleNo');
             if (garmentStyleEntity) {
                 //save user data - styleNo
-                session.userData.styleNo = garmentStyleEntity.entity;
-
+                // session.userData.styleNo = garmentStyleEntity.entity;
                 next({ response: garmentStyleEntity.entity });
             } else {
                 // no entities detected, ask user for a garment style, same as get parameter from Luis
-                builder.Prompts.text(session, 'Please enter garment style no');
+                builder.Prompts.text(session, 'searchPLU_Parameter_style_prompt');
             }
             // }
         },
         function (session, results) {
-            var garmentStyleNo = results.response;
+            let garmentStyleNo = results.response;
             if (garmentStyleNo) {
                 garmentStyleNo = garmentStyleNo.replace(/\s+/g, "");
 
                 //save user data - styleNo
-                session.userData.styleNo = garmentStyleNo;
+                // session.userData.styleNo = garmentStyleNo;
 
-                //get token for search garment style
-                adal_manage.getToken()
+                adal_manage_helper.getToken()
                     .then((token_object) => {
-
-                        // console.log(token_object.accessToken);
-
-                        //get garment style
-                        garmentstyle_helper
-                            .searchGarmentStyle(garmentStyleNo, token_object.accessToken)
-                            .then((GarmentStyles) => {
-                                if (GarmentStyles && GarmentStyles.length > 0) {
-                                    //get data
-                                    var getstyle = GarmentStyles[0];
-                                    var colorways = getstyle.linePlanProducts.productMaterialConfigs;
-                                    if (colorways) {
-                                        var colorwayArray = [];
-                                        for (let i = 0; i < colorways.length; i++) {
-                                            colorwayArray.push(colorways[i].colorway);
-                                        }
-
-                                        //set temp data
-                                        session.userData.colorwayData = colorways;
-                                        builder.Prompts.choice(session, 'please select garment style [' + session.userData.styleNo + '] colorway for search plu ', colorwayArray);
-                                    } else {
-                                        session.send('garment style \"%s\" no colorway , can not search plu', garmentStyleNo);
-                                        session.endDialog();
-                                    }
+                        return garmentstyle_service_helper.searchGarmentStyle(garmentStyleNo, token_object.accessToken);
+                    })
+                    .then((GarmentStyles) => {
+                        if (GarmentStyles && GarmentStyles.length > 0) {
+                            let getstyle = GarmentStyles[0];
+                            let colorways = getstyle.linePlanProducts.productMaterialConfigs;
+                            if (colorways) {
+                                let colorwayArray = [];
+                                for (let i = 0; i < colorways.length; i++) {
+                                    colorwayArray.push(colorways[i].colorway);
                                 }
-                                else {
-                                    // no found
-                                    session.send('can not found garment style \"%s\"', garmentStyleNo);
-                                    session.endDialog();
-                                }
-                            },
-                            (err) => {
-                                session.send('[searchGarmentStyle Error:]' + err.message ? err.message : '');
-                                session.endDialog();
-                            });
+                                //set temp data , we can found colorway in next function
+                                session.userData.colorwayData = colorways;
+
+                                builder.Prompts.choice(session, 'searchPLU_Parameter_colorway_choice', colorwayArray);
+                            } else {
+                                session.send('searchPLU_nocolorway_reply', garmentStyleNo).endDialog();
+                            }
+                        }
+                        else {
+                            session.send('searchPLU_Parameter_style_nofound').endDialog();
+                        }
                     })
                     .catch((err) => {
-                        session.send('[getToken Error:]' + err.message ? err.message : '');
-                        session.endDialog();
-                    })
-
+                        session.send('searchPLU_Error').endDialog();
+                    });
 
             } else {
-                session.send('can not found garment style number from you message \'%s\' ', session.message.text);
-                session.endDialog();
+                session.send('searchPLU_Error').endDialog();
             }
         },
         function (session, results) {
-            var selectColorwayData = session.userData.colorwayData[results.response.index];
+            let selectColorwayData = session.userData.colorwayData[results.response.index];
 
             if (selectColorwayData) {
                 if (selectColorwayData.pluNumber) {
-                    session.send('garment style [' + session.userData.styleNo + '] colorway [' + results.response.entity + '] plu number is');
+                    // session.send('garment style [' + session.userData.styleNo + '] colorway [' + results.response.entity + '] plu number is');
                     session.send(selectColorwayData.pluNumber);
                 } else {
                     session.send('garment style ' + session.userData.styleNo + ' colorway ' + results.response.entity + ' plu number is empty');
@@ -324,103 +270,116 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     ])
     .matches('CheckPLU', [
         function (session, args, next) {
-            session.send('hi ,we are analyzing your message: \'%s\' for check PLU, please wait.', session.message.text);
-
-            var pluNoEntity = builder.EntityRecognizer.findEntity(args.entities, 'PLUNo');
+            let start_message = session.gettext('checkPLU_ReceiveReply', session.message.text);
+            session.send(start_message);
+            let pluNoEntity = builder.EntityRecognizer.findEntity(args.entities, 'PLUNo');
             if (pluNoEntity) {
                 //save user data - pluNo
                 // session.userData.pluNo = pluNoEntity.entity;
-
                 next({ response: pluNoEntity.entity });
             } else {
                 // no entities detected, ask user for a garment style, same as get parameter from Luis
-                builder.Prompts.text(session, 'Please enter plu#');
+                builder.Prompts.text(session, 'checkPLU_Parameter_prompt');
             }
         },
         function (session, results) {
-            var pluNo = results.response;
+            let pluNo = results.response;
 
-            aras_plu_manage.searchPLU(pluNo)
+            aras_plu_manage_helper.searchPLU(pluNo)
                 .then((getdata) => {
                     if (getdata.styleno && getdata.colorway) {
-                        session.send('PLU:' + pluNo);
-                        session.send('style:' + getdata.styleno);
-                        session.send('colorway:' + getdata.colorway);
+                        // session.send('checkPLU_PLUReply');
+                        // session.send(pluNo);
+                        session.send('checkPLU_StyleReply');
+                        session.send(getdata.styleno);
+                        session.send('checkPLU_ColorwayReply');
+                        session.send(getdata.colorway);
+
+                        session.endDialog();
                     } else {
-                        throw new Error('can not get garment style and colorway name , Please try again.');
+                        session.send('checkPLU_NoFound').endDialog();
                     }
                 })
                 .catch((err) => {
-                    session.send(err.message);
+                    session.send('checkPLU_Error').endDialog();
                 });
 
-            session.endDialog();
         }
     ])
-    .matches('Hello', builder.DialogAction.send('hi! welcome use Esquel LPD Bot, try asking me things like \'search germent style XXX\', \'search style XXX\' or \'style XXX\''))
+    .matches('Hello',
+    function (session, args) {
+        let helloMessage =
+            {
+                'title': session.gettext('hello_title'),
+                'subtitle': session.gettext('hello_subtitle'),
+                'text': session.gettext('hello_text') ,
+                'buttonArray': [
+                    {
+                        'title': session.gettext('hello_action_searchstyle_title'),
+                        'command': session.gettext('hello_action_searchstyle_command'),
+                    },
+                    {
+                        'title': session.gettext('hello_action_searchfabric_title'),
+                        'command': session.gettext('hello_action_searchfabric_command'),
+                    },
+                    {
+                        'title': session.gettext('hello_action_searchtrim_title'),
+                        'command': session.gettext('hello_action_searchtrim_command'),
+                    },
+                    {
+                        'title': session.gettext('hello_action_searchplu_title'),
+                        'command': session.gettext('hello_action_searchplu_command'),
+                    },
+                    {
+                        'title': session.gettext('hello_action_checkplu_title'),
+                        'command': session.gettext('hello_action_checkplu_command'),
+                    }
+                ]
+            };
+
+        let card = hello_attachment_helper.helloAttachment(session, helloMessage);
+        var message = new builder.Message(session).addAttachment(card);
+        session.send(message);
+    }
+    )
     .onDefault((session) => {
-        session.send('sorry , i have no idea what you talking about.\"%s\"', session.message.text);
+        session.send('default', session.message.text);
     });
 
 bot.dialog('/', intents);
 
 
-// garment style colorway to card Helpers
-function garmentStyleColorwayAttachment(colorway) {
-    return new builder.ThumbnailCard()
-        .title(colorway.colorway + "(" + colorway.optionNo + ")")
-        .subtitle(colorway.primaryFabricID)
-        .text(colorway.pluNumber)
-        .images([new builder.CardImage().url(colorway.PrimaryFabricImageUrl)])
-        .buttons([
-            new builder.CardAction()
-                .title('View Primary Fabric')
-                .type('imBack')
-                .value('search fabric ' + colorway.primaryFabricID),
-            new builder.CardAction()
-                .title('View Fabric Image')
-                .type('openUrl')
-                .value(colorway.PrimaryFabricImageUrl)
-        ]);
-}
-
-// fabric to card Helplers
-function fabricAttachment(fabric) {
-    return new builder.HeroCard()
-        .title(fabric.fabricID)
-        .subtitle(fabric.fabricNo)
-        .text(fabric.longDescriptions.join(' '))
-        .images([
-            new builder.CardImage().url(fabric.imageURL)])
-        .buttons([
-            new builder.CardAction()
-                .title('View Image')
-                .type('openUrl')
-                .value(fabric.imageURL)
-        ]);
-}
-
-// trim to card Helplers
-function trimAttachment(trim) {
-    return new builder.HeroCard()
-        .title(trim.apparelTrimID)
-        .subtitle(trim.apparelTrimID)
-        .text(trim.longDescriptions.join(' '))
-        .images([
-            new builder.CardImage().url(trim.imageURL)])
-        .buttons([
-            new builder.CardAction()
-                .title('View Image')
-                .type('openUrl')
-                .value(trim.imageURL)
-        ]);
-}
-
-
+bot.dialog('localeDialog', [
+    function (session) {
+        // Prompt the user to select their preferred locale
+        builder.Prompts.choice(session, "locale_prompt", 'English|中文');
+    },
+    function (session, results) {
+        // Update preferred locale
+        var locale;
+        switch (results.response.entity) {
+            case 'English':
+                locale = 'en';
+                break;
+            case '中文':
+                locale = 'cn';
+                break;
+        }
+        session.preferredLocale(locale, function (err) {
+            if (!err) {
+                // Locale files loaded
+                session.endDialog('locale_updated');
+            } else {
+                // Problem loading the selected locale
+                session.error(err);
+            }
+        });
+    }
+]);
 
 if (useEmulator) {
-    var restify = require('restify');
-    var server = restify.createServer();
+    let restify = require('restify');
+    let server = restify.createServer();
     server.listen(3978, function () {
         console.log('test bot endpont at http://localhost:3978/api/messages');
     });
